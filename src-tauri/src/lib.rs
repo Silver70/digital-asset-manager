@@ -41,6 +41,11 @@ pub fn run() {
             commands::auth::logout,
             commands::settings::get_storage_path,
             commands::settings::set_storage_path,
+            commands::folders::get_folder_tree,
+            commands::folders::create_folder,
+            commands::folders::rename_folder,
+            commands::folders::move_folder,
+            commands::folders::delete_folder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
