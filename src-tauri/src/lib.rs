@@ -46,6 +46,10 @@ pub fn run() {
             commands::folders::rename_folder,
             commands::folders::move_folder,
             commands::folders::delete_folder,
+            commands::assets::list_assets,
+            commands::assets::import_assets,
+            commands::assets::delete_assets,
+            commands::assets::move_assets,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

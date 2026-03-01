@@ -2,6 +2,7 @@ import { useOrganization, useClerk } from "@clerk/clerk-react";
 import { logout } from "../../api/auth";
 import { Sidebar } from "./Sidebar";
 import { Breadcrumb } from "../common/Breadcrumb";
+import { AssetGrid } from "../AssetGrid/AssetGrid";
 import { useFolderTree } from "../../hooks/useFolderTree";
 import { useUIStore } from "../../store/uiStore";
 
@@ -49,9 +50,15 @@ function MainContent({ children }: { children?: React.ReactNode }) {
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
       <Breadcrumb tree={tree} />
-      <div className="flex-1 overflow-auto p-4">
-        {children ?? <EmptyFolderState folderId={selectedFolderId} />}
-      </div>
+      {children ?? (
+        selectedFolderId !== null ? (
+          <AssetGrid folderId={selectedFolderId} />
+        ) : (
+          <div className="flex-1 overflow-auto p-4">
+            <EmptyFolderState folderId={null} />
+          </div>
+        )
+      )}
     </main>
   );
 }

@@ -217,5 +217,5 @@ Currently active: `tauri-plugin-opener`. Add new plugins to:
 
 ## Documenting process
 
-- After every execution of the phases of the plan or even a small task or bug fix record the summary inside `D:\shopify\blue-nile\everything-claude-code\examples\sessions`
+- After every execution of the phases of the plan or even a small task or bug fix record the summary inside `D:\digital-asset-manager\DAM-app\.claude\sessions`
 - You should create seperate markdown files for each execution session (eq: 1201*SESSION*{name of the main goal of that task}.md)
