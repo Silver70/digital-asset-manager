@@ -1,6 +1,7 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { listen } from "@tauri-apps/api/event";
 import { AssetCard } from "./AssetCard";
 import {
   useAssets,
@@ -95,39 +96,44 @@ export function AssetGrid({ folderId }: AssetGridProps) {
     }
   }
 
-  // ── Drag-and-drop ─────────────────────────────────────────────────────────
+  // ── Tauri native drag-and-drop ────────────────────────────────────────────
+  // The browser File API never exposes .path in WebView2.
+  // Tauri fires window-level events with actual FS paths instead.
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  }, []);
+  // Stable refs so the event listener registered once always sees the latest values.
+  const folderIdRef = useRef(folderId);
+  useEffect(() => {
+    folderIdRef.current = folderId;
+  }, [folderId]);
 
-  const handleDragLeave = useCallback(() => {
-    setIsDragOver(false);
-  }, []);
+  const importAssetsRef = useRef(importAssets);
+  useEffect(() => {
+    importAssetsRef.current = importAssets;
+  }, [importAssets]);
 
-  const handleDrop = useCallback(
-    async (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(false);
-      setImportError(null);
-
-      const paths: string[] = [];
-      for (const file of Array.from(e.dataTransfer.files)) {
-        const p = (file as unknown as { path?: string }).path;
-        if (p) paths.push(p);
-      }
-      const validPaths = paths.filter(Boolean);
-      if (validPaths.length === 0) return;
-
-      try {
-        await importAssets.mutateAsync({ filePaths: validPaths, folderId });
-      } catch (err) {
-        setImportError(extractTauriError(err));
-      }
-    },
-    [importAssets, folderId],
-  );
+  useEffect(() => {
+    const unlistenPromises = [
+      listen("tauri://drag-enter", () => setIsDragOver(true)),
+      listen("tauri://drag-leave", () => setIsDragOver(false)),
+      listen<{ paths: string[] }>("tauri://drag-drop", async (event) => {
+        setIsDragOver(false);
+        const paths = event.payload.paths ?? [];
+        if (paths.length === 0) return;
+        setImportError(null);
+        try {
+          await importAssetsRef.current.mutateAsync({
+            filePaths: paths,
+            folderId: folderIdRef.current,
+          });
+        } catch (err) {
+          setImportError(extractTauriError(err));
+        }
+      }),
+    ];
+    return () => {
+      unlistenPromises.forEach((p) => p.then((f) => f()));
+    };
+  }, []); // register once on mount, refs handle changing values
 
   // ── Selection actions ─────────────────────────────────────────────────────
 
@@ -214,9 +220,7 @@ export function AssetGrid({ folderId }: AssetGridProps) {
           "flex-1 overflow-auto p-3 relative",
           isDragOver ? "bg-indigo-900/20" : "",
         ].join(" ")}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
       >
         {/* Drop overlay */}
         {isDragOver && (
