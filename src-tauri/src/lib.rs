@@ -19,8 +19,9 @@ pub fn run() {
             // Create background-worker channel
             let (worker_tx, worker_rx) = tokio::sync::mpsc::channel::<WorkerJob>(256);
 
-            // Spawn stub worker; Phase 5 will implement actual processing
-            tauri::async_runtime::spawn(worker::spawn_worker(worker_rx));
+            // Spawn background worker — handles thumbnail generation and metadata extraction
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(worker::spawn_worker(worker_rx, app_handle));
 
             // Initialise application state — no org DB yet (created lazily on switch_org)
             app.manage(AppState {
