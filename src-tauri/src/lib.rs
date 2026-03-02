@@ -51,6 +51,12 @@ pub fn run() {
             commands::assets::import_assets,
             commands::assets::delete_assets,
             commands::assets::move_assets,
+            commands::tags::get_all_tags,
+            commands::tags::get_asset_tags,
+            commands::tags::create_tag,
+            commands::tags::delete_tag,
+            commands::tags::assign_tags,
+            commands::tags::remove_tags,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

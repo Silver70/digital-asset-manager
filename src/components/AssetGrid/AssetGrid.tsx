@@ -10,6 +10,7 @@ import {
 } from "../../hooks/useAssets";
 import { useUIStore } from "../../store/uiStore";
 import { extractTauriError } from "../../api/auth";
+import { TagPicker } from "../TagEditor/TagPicker";
 
 const CARD_MIN_WIDTH = 160;
 const CARD_HEIGHT = 190; // thumbnail + label area
@@ -27,6 +28,9 @@ export function AssetGrid({ folderId }: AssetGridProps) {
 
   const [importError, setImportError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [tagPickerOpen, setTagPickerOpen] = useState(false);
+
+  const selectedIds = Array.from(selectedAssetIds);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const [cols, setCols] = useState(4);
@@ -171,6 +175,12 @@ export function AssetGrid({ folderId }: AssetGridProps) {
               {selectedAssetIds.size} selected
             </span>
             <button
+              onClick={() => setTagPickerOpen(true)}
+              className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              Tag
+            </button>
+            <button
               onClick={handleDelete}
               disabled={deleteAssets.isPending}
               className="px-3 py-1 text-xs bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white rounded-lg transition-colors"
@@ -199,6 +209,14 @@ export function AssetGrid({ folderId }: AssetGridProps) {
           {assets.length} {assets.length === 1 ? "file" : "files"}
         </span>
       </div>
+
+      {/* Bulk tag picker (no initial tags for multi-select) */}
+      <TagPicker
+        assetIds={selectedIds}
+        initialAssignedTags={[]}
+        open={tagPickerOpen}
+        onOpenChange={setTagPickerOpen}
+      />
 
       {/* Error banner */}
       {importError && (

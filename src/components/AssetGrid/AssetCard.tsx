@@ -1,6 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Asset } from "../../types/asset";
 import { useUIStore } from "../../store/uiStore";
+import { TagEditor } from "../TagEditor/TagEditor";
 
 interface AssetCardProps {
   asset: Asset;
@@ -93,7 +94,7 @@ export function AssetCard({ asset }: AssetCardProps) {
         )}
       </div>
 
-      {/* Name + size */}
+      {/* Name + size + tags */}
       <div className="px-2 py-1.5">
         <p className="text-xs text-white truncate" title={asset.name}>
           {asset.name}
@@ -101,6 +102,9 @@ export function AssetCard({ asset }: AssetCardProps) {
         <p className="text-[10px] text-gray-500 mt-0.5">
           {formatBytes(asset.file_size)}
         </p>
+        <div className="mt-1">
+          <TagEditor assetId={asset.id} />
+        </div>
       </div>
     </div>
   );
