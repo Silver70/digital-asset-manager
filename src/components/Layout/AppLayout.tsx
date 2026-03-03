@@ -5,6 +5,7 @@ import { Breadcrumb } from "../common/Breadcrumb";
 import { AssetGrid } from "../AssetGrid/AssetGrid";
 import { SearchBar } from "../Search/SearchBar";
 import { SearchResults } from "../Search/SearchResults";
+import { PreviewPane } from "../AssetPreview/PreviewPane";
 import { useFolderTree } from "../../hooks/useFolderTree";
 import { useUIStore } from "../../store/uiStore";
 import { useSearchStore, isSearchActive } from "../../store/searchStore";
@@ -109,6 +110,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <MainContent>{children}</MainContent>
+        <PreviewPane />
       </div>
     </div>
   );

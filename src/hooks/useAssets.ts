@@ -6,6 +6,7 @@ import {
   importAssets,
   deleteAssets,
   moveAssets,
+  getAssetDetail,
 } from "../api/assets";
 
 export function useAssets(folderId: number | null) {
@@ -58,5 +59,14 @@ export function useMoveAssets() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["assets"] });
     },
+  });
+}
+
+export function useAssetDetail(assetId: number | null) {
+  return useQuery({
+    queryKey: ["asset-detail", assetId],
+    queryFn: () => getAssetDetail(assetId!),
+    enabled: assetId !== null,
+    staleTime: 10_000,
   });
 }

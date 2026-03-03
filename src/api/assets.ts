@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Asset } from "../types/asset";
+import type { AssetDetail } from "../types/metadata";
 
 export function listAssets(folderId: number): Promise<Asset[]> {
   return invoke<Asset[]>("list_assets", { folderId });
@@ -18,4 +19,8 @@ export function deleteAssets(ids: number[]): Promise<void> {
 
 export function moveAssets(ids: number[], folderId: number): Promise<void> {
   return invoke<void>("move_assets", { ids, folderId });
+}
+
+export function getAssetDetail(id: number): Promise<AssetDetail> {
+  return invoke<AssetDetail>("get_asset_detail", { id });
 }

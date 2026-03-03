@@ -51,6 +51,7 @@ pub fn run() {
             commands::assets::import_assets,
             commands::assets::delete_assets,
             commands::assets::move_assets,
+            commands::assets::get_asset_detail,
             commands::tags::get_all_tags,
             commands::tags::get_asset_tags,
             commands::tags::create_tag,

@@ -4,7 +4,9 @@ use uuid::Uuid;
 use mime_guess::from_path;
 
 use crate::error::AppError;
-use crate::models::asset::Asset;
+use crate::models::asset::{Asset, AssetDetail};
+use crate::models::metadata::{ImageMetadata, VideoMetadata};
+use crate::models::tag::Tag;
 use crate::state::AppState;
 use crate::worker::queue::WorkerJob;
 
@@ -214,6 +216,49 @@ pub async fn delete_assets(
     }
 
     Ok(())
+}
+
+/// Returns full detail for a single asset: base record + type-specific metadata + tags.
+#[tauri::command]
+pub async fn get_asset_detail(
+    id: i64,
+    state: State<'_, AppState>,
+) -> Result<AssetDetail, AppError> {
+    let (_org_id, pool) = active_pool!(state);
+
+    let asset = sqlx::query_as::<_, Asset>("SELECT * FROM assets WHERE id = ?")
+        .bind(id)
+        .fetch_one(&pool)
+        .await?;
+
+    let image_metadata =
+        sqlx::query_as::<_, ImageMetadata>("SELECT * FROM image_metadata WHERE asset_id = ?")
+            .bind(id)
+            .fetch_optional(&pool)
+            .await?;
+
+    let video_metadata =
+        sqlx::query_as::<_, VideoMetadata>("SELECT * FROM video_metadata WHERE asset_id = ?")
+            .bind(id)
+            .fetch_optional(&pool)
+            .await?;
+
+    let tags = sqlx::query_as::<_, Tag>(
+        "SELECT t.* FROM tags t
+         JOIN asset_tags at ON t.id = at.tag_id
+         WHERE at.asset_id = ?
+         ORDER BY t.name COLLATE NOCASE",
+    )
+    .bind(id)
+    .fetch_all(&pool)
+    .await?;
+
+    Ok(AssetDetail {
+        asset,
+        image_metadata,
+        video_metadata,
+        tags,
+    })
 }
 
 /// Moves assets to a different folder.
