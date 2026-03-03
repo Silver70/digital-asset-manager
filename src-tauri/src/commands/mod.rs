@@ -4,4 +4,4 @@ pub mod folders;
 pub mod settings;
 pub mod tags;
 
-// Phase 7:  pub mod search;
+pub mod search;

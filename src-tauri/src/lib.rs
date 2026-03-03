@@ -57,6 +57,7 @@ pub fn run() {
             commands::tags::delete_tag,
             commands::tags::assign_tags,
             commands::tags::remove_tags,
+            commands::search::search_assets,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
