@@ -6,6 +6,7 @@ import { AssetGrid } from "../AssetGrid/AssetGrid";
 import { SearchBar } from "../Search/SearchBar";
 import { SearchResults } from "../Search/SearchResults";
 import { PreviewPane } from "../AssetPreview/PreviewPane";
+import { Toaster } from "../common/Toaster";
 import { useFolderTree } from "../../hooks/useFolderTree";
 import { useUIStore } from "../../store/uiStore";
 import { useSearchStore, isSearchActive } from "../../store/searchStore";
@@ -80,9 +81,6 @@ function EmptyFolderState({ folderId }: { folderId: number | null }) {
         <p className="text-gray-400 text-sm">
           Select a folder on the left, or create one to get started.
         </p>
-        <p className="text-gray-600 text-xs mt-2">
-          Asset import coming in Phase 4.
-        </p>
       </div>
     );
   }
@@ -90,9 +88,6 @@ function EmptyFolderState({ folderId }: { folderId: number | null }) {
     <div className="flex flex-col items-center justify-center h-full text-center">
       <p className="text-4xl mb-4">📂</p>
       <p className="text-gray-400 text-sm">This folder is empty.</p>
-      <p className="text-gray-600 text-xs mt-2">
-        Asset import coming in Phase 4.
-      </p>
     </div>
   );
 }
@@ -112,6 +107,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <MainContent>{children}</MainContent>
         <PreviewPane />
       </div>
+      <Toaster />
     </div>
   );
 }

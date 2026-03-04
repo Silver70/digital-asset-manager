@@ -1,6 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Asset } from "../../types/asset";
 import { useUIStore } from "../../store/uiStore";
+import { useRetryAsset } from "../../hooks/useAssets";
 import { TagEditor } from "../TagEditor/TagEditor";
 
 interface AssetCardProps {
@@ -40,6 +41,7 @@ function StatusBadge({ status }: { status: Asset["processing_status"] }) {
 export function AssetCard({ asset }: AssetCardProps) {
   const { selectedAssetIds, toggleAssetSelection, setPreviewAsset } =
     useUIStore();
+  const retryAsset = useRetryAsset();
   const isSelected = selectedAssetIds.has(asset.id);
 
   const thumbnailSrc =
@@ -78,13 +80,23 @@ export function AssetCard({ asset }: AssetCardProps) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="flex flex-col items-center gap-1 text-gray-600">
+          <div className="flex flex-col items-center gap-2 text-gray-600">
             {asset.processing_status === "failed" ? (
-              <span className="text-2xl">⚠️</span>
-            ) : (
               <>
-                <div className="w-6 h-6 border-2 border-gray-600 border-t-indigo-400 rounded-full animate-spin" />
+                <span className="text-2xl">⚠️</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    retryAsset.mutate(asset.id);
+                  }}
+                  disabled={retryAsset.isPending}
+                  className="text-[10px] px-2 py-0.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-300 rounded transition-colors"
+                >
+                  {retryAsset.isPending ? "Retrying…" : "Retry"}
+                </button>
               </>
+            ) : (
+              <div className="w-6 h-6 border-2 border-gray-600 border-t-indigo-400 rounded-full animate-spin" />
             )}
           </div>
         )}

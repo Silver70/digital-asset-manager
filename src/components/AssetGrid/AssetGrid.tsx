@@ -9,26 +9,43 @@ import {
   useDeleteAssets,
 } from "../../hooks/useAssets";
 import { useUIStore } from "../../store/uiStore";
+import { useToastStore } from "../../store/toastStore";
 import { extractTauriError } from "../../api/auth";
 import { TagPicker } from "../TagEditor/TagPicker";
+import { ConfirmDialog } from "../common/ConfirmDialog";
 
 const CARD_MIN_WIDTH = 160;
-const CARD_HEIGHT = 190; // thumbnail + label area
+const CARD_HEIGHT = 190;
 const GAP = 10;
 
 interface AssetGridProps {
   folderId: number;
 }
 
+function AssetCardSkeleton() {
+  return (
+    <div className="flex flex-col rounded-lg overflow-hidden border border-gray-700 bg-gray-800 animate-pulse">
+      <div className="w-full aspect-[4/3] bg-gray-700" />
+      <div className="px-2 py-1.5 space-y-1.5">
+        <div className="h-3 bg-gray-700 rounded w-3/4" />
+        <div className="h-2 bg-gray-700 rounded w-1/4" />
+      </div>
+    </div>
+  );
+}
+
 export function AssetGrid({ folderId }: AssetGridProps) {
   const { data: assets = [], isLoading, isError } = useAssets(folderId);
   const importAssets = useImportAssets();
   const deleteAssets = useDeleteAssets();
-  const { selectedAssetIds, clearSelection, selectAllAssets } = useUIStore();
+  const { selectedAssetIds, clearSelection, selectAllAssets, setPreviewAsset } =
+    useUIStore();
+  const { push: pushToast } = useToastStore();
 
   const [importError, setImportError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const selectedIds = Array.from(selectedAssetIds);
 
@@ -46,6 +63,35 @@ export function AssetGrid({ folderId }: AssetGridProps) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      // Ignore if focus is inside an input / textarea
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      if (e.key === "Escape") {
+        clearSelection();
+        setPreviewAsset(null);
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        e.preventDefault();
+        selectAllAssets(assets.map((a) => a.id));
+        return;
+      }
+
+      if (e.key === "Delete" && selectedAssetIds.size > 0) {
+        setConfirmDeleteOpen(true);
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [assets, selectedAssetIds, clearSelection, selectAllAssets, setPreviewAsset]);
 
   const rowCount = Math.ceil(assets.length / cols);
 
@@ -67,23 +113,9 @@ export function AssetGrid({ folderId }: AssetGridProps) {
           {
             name: "Media Files",
             extensions: [
-              "jpg",
-              "jpeg",
-              "png",
-              "gif",
-              "webp",
-              "bmp",
-              "tiff",
-              "svg",
-              "mp4",
-              "mov",
-              "avi",
-              "mkv",
-              "webm",
-              "pdf",
-              "psd",
-              "ai",
-              "eps",
+              "jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "svg",
+              "mp4", "mov", "avi", "mkv", "webm",
+              "pdf", "psd", "ai", "eps",
             ],
           },
           { name: "All Files", extensions: ["*"] },
@@ -95,16 +127,17 @@ export function AssetGrid({ folderId }: AssetGridProps) {
       if (paths.length === 0) return;
 
       await importAssets.mutateAsync({ filePaths: paths, folderId });
+      pushToast(
+        `Imported ${paths.length} ${paths.length === 1 ? "file" : "files"}`,
+        "success",
+      );
     } catch (err) {
       setImportError(extractTauriError(err));
     }
   }
 
   // ── Tauri native drag-and-drop ────────────────────────────────────────────
-  // The browser File API never exposes .path in WebView2.
-  // Tauri fires window-level events with actual FS paths instead.
 
-  // Stable refs so the event listener registered once always sees the latest values.
   const folderIdRef = useRef(folderId);
   useEffect(() => {
     folderIdRef.current = folderId;
@@ -129,6 +162,10 @@ export function AssetGrid({ folderId }: AssetGridProps) {
             filePaths: paths,
             folderId: folderIdRef.current,
           });
+          pushToast(
+            `Imported ${paths.length} ${paths.length === 1 ? "file" : "files"}`,
+            "success",
+          );
         } catch (err) {
           setImportError(extractTauriError(err));
         }
@@ -137,17 +174,22 @@ export function AssetGrid({ folderId }: AssetGridProps) {
     return () => {
       unlistenPromises.forEach((p) => p.then((f) => f()));
     };
-  }, []); // register once on mount, refs handle changing values
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Selection actions ─────────────────────────────────────────────────────
 
   async function handleDelete() {
     const ids = Array.from(selectedAssetIds);
+    const count = ids.length;
     try {
       await deleteAssets.mutateAsync(ids);
       clearSelection();
+      pushToast(
+        `Deleted ${count} ${count === 1 ? "asset" : "assets"}`,
+        "success",
+      );
     } catch (err) {
-      setImportError(extractTauriError(err));
+      pushToast(extractTauriError(err), "error");
     }
   }
 
@@ -181,7 +223,7 @@ export function AssetGrid({ folderId }: AssetGridProps) {
               Tag
             </button>
             <button
-              onClick={handleDelete}
+              onClick={() => setConfirmDeleteOpen(true)}
               disabled={deleteAssets.isPending}
               className="px-3 py-1 text-xs bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white rounded-lg transition-colors"
             >
@@ -210,7 +252,7 @@ export function AssetGrid({ folderId }: AssetGridProps) {
         </span>
       </div>
 
-      {/* Bulk tag picker (no initial tags for multi-select) */}
+      {/* Bulk tag picker */}
       <TagPicker
         assetIds={selectedIds}
         initialAssignedTags={[]}
@@ -218,7 +260,18 @@ export function AssetGrid({ folderId }: AssetGridProps) {
         onOpenChange={setTagPickerOpen}
       />
 
-      {/* Error banner */}
+      {/* Delete confirm dialog */}
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title="Delete assets?"
+        description={`This will permanently delete ${selectedAssetIds.size} ${selectedAssetIds.size === 1 ? "asset" : "assets"} and remove the files from disk. This cannot be undone.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={handleDelete}
+      />
+
+      {/* Import error banner */}
       {importError && (
         <div className="px-4 py-2 text-xs text-red-300 bg-red-900/30 border-b border-red-800 shrink-0">
           {importError}
@@ -249,15 +302,27 @@ export function AssetGrid({ folderId }: AssetGridProps) {
           </div>
         )}
 
-        {/* States */}
+        {/* Loading skeletons */}
         {isLoading && (
-          <p className="text-xs text-gray-500 text-center py-8">Loading…</p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${cols}, 1fr)`,
+              gap: GAP,
+            }}
+          >
+            {Array.from({ length: cols * 3 }).map((_, i) => (
+              <AssetCardSkeleton key={i} />
+            ))}
+          </div>
         )}
+
         {isError && (
           <p className="text-xs text-red-400 text-center py-8">
             Failed to load assets
           </p>
         )}
+
         {!isLoading && !isError && assets.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
             <p className="text-4xl mb-3">📂</p>

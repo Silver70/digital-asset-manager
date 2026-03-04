@@ -7,6 +7,7 @@ import {
   deleteAssets,
   moveAssets,
   getAssetDetail,
+  retryAsset,
 } from "../api/assets";
 
 export function useAssets(folderId: number | null) {
@@ -59,6 +60,14 @@ export function useMoveAssets() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["assets"] });
     },
+  });
+}
+
+export function useRetryAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => retryAsset(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["assets"] }),
   });
 }
 

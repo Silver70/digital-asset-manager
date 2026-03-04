@@ -261,6 +261,40 @@ pub async fn get_asset_detail(
     })
 }
 
+/// Resets a failed asset back to 'pending' and re-enqueues it for processing.
+#[tauri::command]
+pub async fn retry_asset_processing(
+    id: i64,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let (org_id, pool) = active_pool!(state);
+
+    sqlx::query(
+        "UPDATE assets SET processing_status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    )
+    .bind(id)
+    .execute(&pool)
+    .await?;
+
+    let row: Option<(String,)> = sqlx::query_as("SELECT file_path FROM assets WHERE id = ?")
+        .bind(id)
+        .fetch_optional(&pool)
+        .await?;
+
+    if let Some((path_str,)) = row {
+        let _ = state
+            .worker_tx
+            .send(WorkerJob::Process {
+                asset_id: id,
+                file_path: PathBuf::from(path_str),
+                org_id,
+            })
+            .await;
+    }
+
+    Ok(())
+}
+
 /// Moves assets to a different folder.
 #[tauri::command]
 pub async fn move_assets(

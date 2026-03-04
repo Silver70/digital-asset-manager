@@ -24,3 +24,7 @@ export function moveAssets(ids: number[], folderId: number): Promise<void> {
 export function getAssetDetail(id: number): Promise<AssetDetail> {
   return invoke<AssetDetail>("get_asset_detail", { id });
 }
+
+export function retryAsset(id: number): Promise<void> {
+  return invoke<void>("retry_asset_processing", { id });
+}
